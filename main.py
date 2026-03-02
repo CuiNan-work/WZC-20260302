@@ -559,11 +559,9 @@ class UAVEnv(gym.Env):
             else:
                 m = uav_id - 1
                 N = uav_user_count[m]
-                if N == 0:
-                    continue
                 h_km = composite_channel[m, k]
                 SNR = P_uav * h_km / P_n_W
-                R_back = (B_total / N) * np.log2(1 + SNR) * 1e-6  # Mbps
+                R_back = (B_total / N) * np.log2(1 + SNR) * 1e-6  # 转化为Mbps
                 backhaul_delay[k] = (result_ratio * self.user_tasks[k]) / R_back
 
         self.users_backhaul_delay = backhaul_delay
