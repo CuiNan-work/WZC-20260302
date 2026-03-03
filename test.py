@@ -50,6 +50,11 @@ def run_test(model_path=MODEL_PATH, test_steps=TEST_STEPS):
     # 用户位置（每步可能不同，记录最后一步用于标注）
     user_positions_record = np.zeros((test_steps, num_users, 2))
 
+    # UAV负载记录: (test_steps, num_uavs)
+    uav_loads = np.zeros((test_steps, num_uavs))
+    # 用户决策记录: (test_steps, num_users)
+    user_decisions_record = np.zeros((test_steps, num_users), dtype=int)
+
     print(f"\n{'=' * 70}")
     print(f"开始测试：共 {test_steps} 步")
     print(f"{'=' * 70}")
@@ -70,6 +75,10 @@ def run_test(model_path=MODEL_PATH, test_steps=TEST_STEPS):
         # 记录用户位置
         user_positions_record[step] = env.user_positions.copy()
 
+        # 记录UAV负载和用户决策
+        uav_loads[step] = np.array(env.uav_L)
+        user_decisions_record[step] = env.user_decisions.copy()
+
         print(f"Step {step + 1:3d} | Reward: {reward:.4f} | "
               f"Total Delay: {env.total_time:.4f}s | "
               f"Decisions: {info['user_decisions']}")
@@ -88,6 +97,8 @@ def run_test(model_path=MODEL_PATH, test_steps=TEST_STEPS):
         'return_delays': return_delays,
         'total_delays': total_delays,
         'user_positions': user_positions_record,
+        'uav_loads': uav_loads,
+        'user_decisions': user_decisions_record,
         'test_steps': test_steps,
     }
 
@@ -217,7 +228,127 @@ def plot_user_delays(data, save_path="./user_task_delays.png"):
     print(f"用户任务处理时延图已保存至: {save_path}")
 
 
+def plot_uav_load_balance(data, save_path="./uav_load_balance.png"):
+    """绘制每一步UAV的负载均衡图"""
+    uav_loads = data['uav_loads']
+    test_steps = data['test_steps']
+
+    steps = np.arange(1, test_steps + 1)
+    colors = ['#e74c3c', '#2ecc71', '#3498db']
+
+    fig, ax = plt.subplots(figsize=(14, 6), dpi=150)
+
+    bar_width = 0.25
+    for i in range(num_uavs):
+        offsets = steps + (i - 1) * bar_width
+        ax.bar(offsets, uav_loads[:, i], width=bar_width, color=colors[i],
+               alpha=0.85, label=f'UAV {i + 1}', edgecolor='white', linewidth=0.5)
+
+    ax.set_xlabel('Step', fontsize=12)
+    ax.set_ylabel('Load (Mbit)', fontsize=12)
+    ax.set_title(f'UAV Load Balance per Step ({test_steps} steps)', fontsize=14)
+    ax.set_xticks(steps)
+    ax.legend(fontsize=10)
+    ax.grid(True, alpha=0.3, axis='y')
+
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.close(fig)
+    print(f"UAV负载均衡图已保存至: {save_path}")
+
+
+def plot_offload_distribution(data, save_path="./offload_distribution.png"):
+    """绘制每一步所有用户的本地计算和卸载计算分布"""
+    user_decisions = data['user_decisions']
+    test_steps = data['test_steps']
+
+    steps = np.arange(1, test_steps + 1)
+
+    # 统计每步中 本地计算用户数 和 卸载到各UAV的用户数
+    local_counts = np.zeros(test_steps)
+    uav_counts = np.zeros((test_steps, num_uavs))
+
+    for t in range(test_steps):
+        for k in range(num_users):
+            dec = user_decisions[t, k]
+            if dec == 0:
+                local_counts[t] += 1
+            else:
+                uav_counts[t, dec - 1] += 1
+
+    fig, ax = plt.subplots(figsize=(14, 6), dpi=150)
+
+    # 堆叠柱状图
+    ax.bar(steps, local_counts, color='#95a5a6', label='Local', edgecolor='white', linewidth=0.5)
+    bottom = local_counts.copy()
+    colors = ['#e74c3c', '#2ecc71', '#3498db']
+    for i in range(num_uavs):
+        ax.bar(steps, uav_counts[:, i], bottom=bottom, color=colors[i],
+               label=f'Offload to UAV {i + 1}', edgecolor='white', linewidth=0.5)
+        bottom += uav_counts[:, i]
+
+    ax.set_xlabel('Step', fontsize=12)
+    ax.set_ylabel('Number of Users', fontsize=12)
+    ax.set_title(f'User Computation Distribution per Step ({test_steps} steps)', fontsize=14)
+    ax.set_xticks(steps)
+    ax.set_yticks(range(0, num_users + 1))
+    ax.legend(fontsize=10, loc='upper right')
+    ax.grid(True, alpha=0.3, axis='y')
+
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.close(fig)
+    print(f"用户计算分布图已保存至: {save_path}")
+
+
+def plot_local_vs_offload_delay(data, save_path="./local_vs_offload_delay.png"):
+    """绘制每一步本地时延和卸载时延的对比折线图"""
+    user_decisions = data['user_decisions']
+    comm_delays = data['comm_delays']
+    comp_delays = data['comp_delays']
+    return_delays = data['return_delays']
+    test_steps = data['test_steps']
+
+    steps = np.arange(1, test_steps + 1)
+
+    # 每步的本地总时延 和 卸载总时延
+    local_delay_per_step = np.zeros(test_steps)
+    offload_delay_per_step = np.zeros(test_steps)
+
+    for t in range(test_steps):
+        for k in range(num_users):
+            user_total = comm_delays[t, k] + comp_delays[t, k] + return_delays[t, k]
+            if user_decisions[t, k] == 0:
+                local_delay_per_step[t] += user_total
+            else:
+                offload_delay_per_step[t] += user_total
+
+    fig, ax = plt.subplots(figsize=(14, 6), dpi=150)
+
+    ax.plot(steps, local_delay_per_step, 'o-', color='#e67e22', linewidth=2,
+            markersize=5, label='Local Computation Delay')
+    ax.plot(steps, offload_delay_per_step, 's-', color='#2980b9', linewidth=2,
+            markersize=5, label='Offload Computation Delay')
+
+    ax.fill_between(steps, local_delay_per_step, alpha=0.15, color='#e67e22')
+    ax.fill_between(steps, offload_delay_per_step, alpha=0.15, color='#2980b9')
+
+    ax.set_xlabel('Step', fontsize=12)
+    ax.set_ylabel('Total Delay (s)', fontsize=12)
+    ax.set_title(f'Local vs Offload Delay per Step ({test_steps} steps)', fontsize=14)
+    ax.legend(fontsize=11)
+    ax.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.close(fig)
+    print(f"本地与卸载时延对比图已保存至: {save_path}")
+
+
 if __name__ == "__main__":
     data = run_test(model_path=MODEL_PATH, test_steps=TEST_STEPS)
     plot_uav_trajectories(data, save_path="./uav_trajectories.png")
     plot_user_delays(data, save_path="./user_task_delays.png")
+    plot_uav_load_balance(data, save_path="./uav_load_balance.png")
+    plot_offload_distribution(data, save_path="./offload_distribution.png")
+    plot_local_vs_offload_delay(data, save_path="./local_vs_offload_delay.png")
