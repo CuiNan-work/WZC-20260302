@@ -113,17 +113,19 @@ def plot_uav_trajectories(data, save_path="./uav_trajectories.png"):
 
         # 起点标记
         ax.scatter(xs[0], ys[0], color=colors[i], marker=markers[i],
-                   s=200, zorder=5, edgecolors='black', linewidths=1.5)
-        ax.annotate(f'UAV{i + 1} start', (xs[0], ys[0]),
+                   s=250, zorder=5, edgecolors='black', linewidths=2)
+        ax.annotate(f'UAV{i + 1} 起点', (xs[0], ys[0]),
                     textcoords="offset points", xytext=(10, 10),
-                    fontsize=9, fontweight='bold', color=colors[i])
+                    fontsize=10, fontweight='bold', color=colors[i],
+                    bbox=dict(boxstyle='round,pad=0.2', facecolor='white', alpha=0.7))
 
         # 终点标记
         ax.scatter(xs[-1], ys[-1], color=colors[i], marker='*',
-                   s=300, zorder=5, edgecolors='black', linewidths=1.5)
-        ax.annotate(f'UAV{i + 1} end', (xs[-1], ys[-1]),
+                   s=350, zorder=5, edgecolors='black', linewidths=2)
+        ax.annotate(f'UAV{i + 1} 终点', (xs[-1], ys[-1]),
                     textcoords="offset points", xytext=(10, -15),
-                    fontsize=9, fontweight='bold', color=colors[i])
+                    fontsize=10, fontweight='bold', color=colors[i],
+                    bbox=dict(boxstyle='round,pad=0.2', facecolor='white', alpha=0.7))
 
         # 步数标注（每5步标注一次）
         for t in range(0, test_steps + 1, 5):
@@ -140,12 +142,6 @@ def plot_uav_trajectories(data, save_path="./uav_trajectories.png"):
         ax.annotate(f'GT{k}', (last_user_pos[k, 0], last_user_pos[k, 1]),
                     textcoords="offset points", xytext=(5, 5),
                     fontsize=7, color='gray')
-
-    # RIS位置
-    ax.scatter(0, 0, color='gold', marker='D', s=200, zorder=5,
-               edgecolors='black', linewidths=1.5, label='RIS')
-    ax.annotate('RIS', (0, 0), textcoords="offset points", xytext=(10, 10),
-                fontsize=10, fontweight='bold', color='gold')
 
     ax.set_xlim(-420, 420)
     ax.set_ylim(-420, 420)
