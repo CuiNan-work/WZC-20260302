@@ -17,7 +17,7 @@ plt.rcParams['font.sans-serif'] = ['Microsoft YaHei', 'SimHei', 'DejaVu Sans']
 plt.rcParams['axes.unicode_minus'] = False
 
 # 测试参数
-TEST_STEPS = 25
+TEST_STEPS = 100
 MODEL_PATH = "ppo_uav_ris_10"
 
 
@@ -138,8 +138,8 @@ def plot_uav_trajectories(data, save_path="./uav_trajectories.png"):
                     fontsize=10, fontweight='bold', color=colors[i],
                     bbox=dict(boxstyle='round,pad=0.2', facecolor='white', alpha=0.7))
 
-        # 步数标注（每5步标注一次）
-        for t in range(0, test_steps + 1, 5):
+        # 步数标注（每10步标注一次）
+        for t in range(0, test_steps + 1, 10):
             if t > 0:
                 ax.annotate(f'{t}', (xs[t], ys[t]),
                             textcoords="offset points", xytext=(5, 5),
@@ -189,6 +189,7 @@ def plot_user_delays(data, save_path="./user_task_delays.png"):
     ax1.set_ylabel('Communication Delay (s)', fontsize=11)
     ax1.set_title('Communication Delay per User', fontsize=13)
     ax1.legend(fontsize=7, ncol=2, loc='upper right')
+    ax1.set_xticks(range(0, test_steps + 1, 10))
     ax1.grid(True, alpha=0.3)
 
     # === 子图2：各用户计算时延 ===
@@ -199,6 +200,7 @@ def plot_user_delays(data, save_path="./user_task_delays.png"):
     ax2.set_ylabel('Computation Delay (s)', fontsize=11)
     ax2.set_title('Computation Delay per User', fontsize=13)
     ax2.legend(fontsize=7, ncol=2, loc='upper right')
+    ax2.set_xticks(range(0, test_steps + 1, 10))
     ax2.grid(True, alpha=0.3)
 
     # === 子图3：各用户回传时延 ===
@@ -209,16 +211,18 @@ def plot_user_delays(data, save_path="./user_task_delays.png"):
     ax3.set_ylabel('Return Delay (s)', fontsize=11)
     ax3.set_title('Return Delay per User', fontsize=13)
     ax3.legend(fontsize=7, ncol=2, loc='upper right')
+    ax3.set_xticks(range(0, test_steps + 1, 10))
     ax3.grid(True, alpha=0.3)
 
     # === 子图4：系统总时延 ===
     ax4 = axes[1, 1]
-    ax4.plot(steps, total_delays, 'r-o', linewidth=2, markersize=4, label='Total System Delay')
+    ax4.plot(steps, total_delays, 'r-', linewidth=2, label='Total System Delay')
     ax4.fill_between(steps, 0, total_delays, alpha=0.2, color='red')
     ax4.set_xlabel('Step', fontsize=11)
     ax4.set_ylabel('Total System Delay (s)', fontsize=11)
     ax4.set_title('Total System Delay per Step', fontsize=13)
     ax4.legend(fontsize=10)
+    ax4.set_xticks(range(0, test_steps + 1, 10))
     ax4.grid(True, alpha=0.3)
 
     plt.suptitle(f'User Task Processing Delays ({test_steps} steps)', fontsize=15, y=1.01)
@@ -238,16 +242,15 @@ def plot_uav_load_balance(data, save_path="./uav_load_balance.png"):
 
     fig, ax = plt.subplots(figsize=(14, 6), dpi=150)
 
-    bar_width = 0.25
     for i in range(num_uavs):
-        offsets = steps + (i - 1) * bar_width
-        ax.bar(offsets, uav_loads[:, i], width=bar_width, color=colors[i],
-               alpha=0.85, label=f'UAV {i + 1}', edgecolor='white', linewidth=0.5)
+        ax.plot(steps, uav_loads[:, i], color=colors[i], linewidth=2,
+                alpha=0.85, label=f'UAV {i + 1}')
+        ax.fill_between(steps, uav_loads[:, i], alpha=0.15, color=colors[i])
 
     ax.set_xlabel('Step', fontsize=12)
     ax.set_ylabel('Load (Mbit)', fontsize=12)
     ax.set_title(f'UAV Load Balance per Step ({test_steps} steps)', fontsize=14)
-    ax.set_xticks(steps)
+    ax.set_xticks(range(0, test_steps + 1, 10))
     ax.legend(fontsize=10)
     ax.grid(True, alpha=0.3, axis='y')
 
@@ -278,19 +281,16 @@ def plot_offload_distribution(data, save_path="./offload_distribution.png"):
 
     fig, ax = plt.subplots(figsize=(14, 6), dpi=150)
 
-    # 堆叠柱状图
-    ax.bar(steps, local_counts, color='#95a5a6', label='Local', edgecolor='white', linewidth=0.5)
-    bottom = local_counts.copy()
-    colors = ['#e74c3c', '#2ecc71', '#3498db']
-    for i in range(num_uavs):
-        ax.bar(steps, uav_counts[:, i], bottom=bottom, color=colors[i],
-               label=f'Offload to UAV {i + 1}', edgecolor='white', linewidth=0.5)
-        bottom += uav_counts[:, i]
+    # 堆叠面积图
+    stack_data = np.vstack([local_counts] + [uav_counts[:, i] for i in range(num_uavs)])
+    stack_labels = ['Local'] + [f'Offload to UAV {i + 1}' for i in range(num_uavs)]
+    stack_colors = ['#95a5a6'] + ['#e74c3c', '#2ecc71', '#3498db'][:num_uavs]
+    ax.stackplot(steps, stack_data, labels=stack_labels, colors=stack_colors, alpha=0.85)
 
     ax.set_xlabel('Step', fontsize=12)
     ax.set_ylabel('Number of Users', fontsize=12)
     ax.set_title(f'User Computation Distribution per Step ({test_steps} steps)', fontsize=14)
-    ax.set_xticks(steps)
+    ax.set_xticks(range(0, test_steps + 1, 10))
     ax.set_yticks(range(0, num_users + 1))
     ax.legend(fontsize=10, loc='upper right')
     ax.grid(True, alpha=0.3, axis='y')
@@ -325,10 +325,10 @@ def plot_local_vs_offload_delay(data, save_path="./local_vs_offload_delay.png"):
 
     fig, ax = plt.subplots(figsize=(14, 6), dpi=150)
 
-    ax.plot(steps, local_delay_per_step, 'o-', color='#e67e22', linewidth=2,
-            markersize=5, label='Local Computation Delay')
-    ax.plot(steps, offload_delay_per_step, 's-', color='#2980b9', linewidth=2,
-            markersize=5, label='Offload Computation Delay')
+    ax.plot(steps, local_delay_per_step, '-', color='#e67e22', linewidth=2,
+            label='Local Computation Delay')
+    ax.plot(steps, offload_delay_per_step, '-', color='#2980b9', linewidth=2,
+            label='Offload Computation Delay')
 
     ax.fill_between(steps, local_delay_per_step, alpha=0.15, color='#e67e22')
     ax.fill_between(steps, offload_delay_per_step, alpha=0.15, color='#2980b9')
@@ -337,6 +337,7 @@ def plot_local_vs_offload_delay(data, save_path="./local_vs_offload_delay.png"):
     ax.set_ylabel('Total Delay (s)', fontsize=12)
     ax.set_title(f'Local vs Offload Delay per Step ({test_steps} steps)', fontsize=14)
     ax.legend(fontsize=11)
+    ax.set_xticks(range(0, test_steps + 1, 10))
     ax.grid(True, alpha=0.3)
 
     plt.tight_layout()
