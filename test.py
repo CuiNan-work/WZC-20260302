@@ -199,41 +199,48 @@ def plot_user_delays(data, save_path="./user_task_delays.png"):
     ax1 = axes[0, 0]
     for k in range(num_users):
         xs, ys = smooth_line(steps, comm_delays[:, k])
+        ys = np.maximum(ys, 0)
         ax1.plot(xs, ys, linewidth=1.2, alpha=0.8, label=f'GT{k}')
     ax1.set_xlabel('Step', fontsize=11)
     ax1.set_ylabel('Communication Delay (s)', fontsize=11)
     ax1.set_title('Communication Delay per User', fontsize=13)
     ax1.legend(fontsize=7, ncol=2, loc='upper right')
     ax1.set_xticks(range(0, test_steps + 1, 10))
+    ax1.set_ylim(bottom=0)
     ax1.grid(True, alpha=0.3)
 
     # === 子图2：各用户计算时延 ===
     ax2 = axes[0, 1]
     for k in range(num_users):
         xs, ys = smooth_line(steps, comp_delays[:, k])
+        ys = np.maximum(ys, 0)
         ax2.plot(xs, ys, linewidth=1.2, alpha=0.8, label=f'GT{k}')
     ax2.set_xlabel('Step', fontsize=11)
     ax2.set_ylabel('Computation Delay (s)', fontsize=11)
     ax2.set_title('Computation Delay per User', fontsize=13)
     ax2.legend(fontsize=7, ncol=2, loc='upper right')
     ax2.set_xticks(range(0, test_steps + 1, 10))
+    ax2.set_ylim(bottom=0)
     ax2.grid(True, alpha=0.3)
 
     # === 子图3：各用户回传时延 ===
     ax3 = axes[1, 0]
     for k in range(num_users):
         xs, ys = smooth_line(steps, return_delays[:, k])
+        ys = np.maximum(ys, 0)
         ax3.plot(xs, ys, linewidth=1.2, alpha=0.8, label=f'GT{k}')
     ax3.set_xlabel('Step', fontsize=11)
     ax3.set_ylabel('Return Delay (s)', fontsize=11)
     ax3.set_title('Return Delay per User', fontsize=13)
     ax3.legend(fontsize=7, ncol=2, loc='upper right')
     ax3.set_xticks(range(0, test_steps + 1, 10))
+    ax3.set_ylim(bottom=0)
     ax3.grid(True, alpha=0.3)
 
     # === 子图4：系统总时延 ===
     ax4 = axes[1, 1]
     xs, ys = smooth_line(steps, total_delays)
+    ys = np.maximum(ys, 0)
     ax4.plot(xs, ys, 'r-', linewidth=2, label='Total System Delay')
     ax4.fill_between(xs, 0, ys, alpha=0.2, color='red')
     ax4.set_xlabel('Step', fontsize=11)
@@ -241,6 +248,7 @@ def plot_user_delays(data, save_path="./user_task_delays.png"):
     ax4.set_title('Total System Delay per Step', fontsize=13)
     ax4.legend(fontsize=10)
     ax4.set_xticks(range(0, test_steps + 1, 10))
+    ax4.set_ylim(bottom=0)
     ax4.grid(True, alpha=0.3)
 
     plt.suptitle(f'User Task Processing Delays ({test_steps} steps)', fontsize=15, y=1.01)
@@ -351,6 +359,8 @@ def plot_local_vs_offload_delay(data, save_path="./local_vs_offload_delay.png"):
 
     xs1, ys1 = smooth_line(steps, local_delay_per_step)
     xs2, ys2 = smooth_line(steps, offload_delay_per_step)
+    ys1 = np.maximum(ys1, 0)
+    ys2 = np.maximum(ys2, 0)
     ax.plot(xs1, ys1, '-', color='#e67e22', linewidth=2,
             label='Local Computation Delay')
     ax.plot(xs2, ys2, '-', color='#2980b9', linewidth=2,
@@ -364,6 +374,7 @@ def plot_local_vs_offload_delay(data, save_path="./local_vs_offload_delay.png"):
     ax.set_title(f'Local vs Offload Delay per Step ({test_steps} steps)', fontsize=14)
     ax.legend(fontsize=11)
     ax.set_xticks(range(0, test_steps + 1, 10))
+    ax.set_ylim(bottom=0)
     ax.grid(True, alpha=0.3)
 
     plt.tight_layout()
