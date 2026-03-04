@@ -8,6 +8,7 @@ import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from scipy.interpolate import make_interp_spline
 from stable_baselines3 import PPO
 
 from train import UAVEnv, num_uavs, num_users
@@ -103,6 +104,16 @@ def run_test(model_path=MODEL_PATH, test_steps=TEST_STEPS):
     }
 
 
+def smooth_line(x, y, num_points=300):
+    """使用三次样条插值对折线进行平滑处理"""
+    if len(x) < 4:
+        return x, y
+    x_smooth = np.linspace(x[0], x[-1], num_points)
+    spline = make_interp_spline(x, y, k=3)
+    y_smooth = spline(x_smooth)
+    return x_smooth, y_smooth
+
+
 def plot_uav_trajectories(data, save_path="./uav_trajectories.png"):
     """绘制UAV飞行轨迹图"""
     trajectories = data['uav_trajectories']
@@ -119,7 +130,10 @@ def plot_uav_trajectories(data, save_path="./uav_trajectories.png"):
         ys = trajectories[:, i, 1]
 
         # 绘制轨迹线
-        ax.plot(xs, ys, color=colors[i], linewidth=1.5, alpha=0.7,
+        t = np.arange(len(xs))
+        _, xs_smooth = smooth_line(t, xs)
+        _, ys_smooth = smooth_line(t, ys)
+        ax.plot(xs_smooth, ys_smooth, color=colors[i], linewidth=1.5, alpha=0.7,
                 label=f'UAV {i + 1} trajectory')
 
         # 起点标记
@@ -184,7 +198,8 @@ def plot_user_delays(data, save_path="./user_task_delays.png"):
     # === 子图1：各用户通信时延 ===
     ax1 = axes[0, 0]
     for k in range(num_users):
-        ax1.plot(steps, comm_delays[:, k], linewidth=1.2, alpha=0.8, label=f'GT{k}')
+        xs, ys = smooth_line(steps, comm_delays[:, k])
+        ax1.plot(xs, ys, linewidth=1.2, alpha=0.8, label=f'GT{k}')
     ax1.set_xlabel('Step', fontsize=11)
     ax1.set_ylabel('Communication Delay (s)', fontsize=11)
     ax1.set_title('Communication Delay per User', fontsize=13)
@@ -195,7 +210,8 @@ def plot_user_delays(data, save_path="./user_task_delays.png"):
     # === 子图2：各用户计算时延 ===
     ax2 = axes[0, 1]
     for k in range(num_users):
-        ax2.plot(steps, comp_delays[:, k], linewidth=1.2, alpha=0.8, label=f'GT{k}')
+        xs, ys = smooth_line(steps, comp_delays[:, k])
+        ax2.plot(xs, ys, linewidth=1.2, alpha=0.8, label=f'GT{k}')
     ax2.set_xlabel('Step', fontsize=11)
     ax2.set_ylabel('Computation Delay (s)', fontsize=11)
     ax2.set_title('Computation Delay per User', fontsize=13)
@@ -206,7 +222,8 @@ def plot_user_delays(data, save_path="./user_task_delays.png"):
     # === 子图3：各用户回传时延 ===
     ax3 = axes[1, 0]
     for k in range(num_users):
-        ax3.plot(steps, return_delays[:, k], linewidth=1.2, alpha=0.8, label=f'GT{k}')
+        xs, ys = smooth_line(steps, return_delays[:, k])
+        ax3.plot(xs, ys, linewidth=1.2, alpha=0.8, label=f'GT{k}')
     ax3.set_xlabel('Step', fontsize=11)
     ax3.set_ylabel('Return Delay (s)', fontsize=11)
     ax3.set_title('Return Delay per User', fontsize=13)
@@ -216,8 +233,9 @@ def plot_user_delays(data, save_path="./user_task_delays.png"):
 
     # === 子图4：系统总时延 ===
     ax4 = axes[1, 1]
-    ax4.plot(steps, total_delays, 'r-', linewidth=2, label='Total System Delay')
-    ax4.fill_between(steps, 0, total_delays, alpha=0.2, color='red')
+    xs, ys = smooth_line(steps, total_delays)
+    ax4.plot(xs, ys, 'r-', linewidth=2, label='Total System Delay')
+    ax4.fill_between(xs, 0, ys, alpha=0.2, color='red')
     ax4.set_xlabel('Step', fontsize=11)
     ax4.set_ylabel('Total System Delay (s)', fontsize=11)
     ax4.set_title('Total System Delay per Step', fontsize=13)
@@ -247,8 +265,9 @@ def plot_jain_fairness_index(data, save_path="./jain_fairness_index.png"):
 
     fig, ax = plt.subplots(figsize=(14, 6), dpi=150)
 
-    ax.plot(steps, jain_index, color='#2980b9', linewidth=2, label="Jain's Fairness Index")
-    ax.fill_between(steps, jain_index, alpha=0.15, color='#2980b9')
+    xs, ys = smooth_line(steps, jain_index)
+    ax.plot(xs, ys, color='#2980b9', linewidth=2, label="Jain's Fairness Index")
+    ax.fill_between(xs, 0, ys, alpha=0.15, color='#2980b9')
     ax.axhline(y=1.0, color='gray', linestyle='--', linewidth=1, alpha=0.7, label='Perfect Fairness (1.0)')
 
     ax.set_xlabel('Step', fontsize=12)
@@ -330,13 +349,15 @@ def plot_local_vs_offload_delay(data, save_path="./local_vs_offload_delay.png"):
 
     fig, ax = plt.subplots(figsize=(14, 6), dpi=150)
 
-    ax.plot(steps, local_delay_per_step, '-', color='#e67e22', linewidth=2,
+    xs1, ys1 = smooth_line(steps, local_delay_per_step)
+    xs2, ys2 = smooth_line(steps, offload_delay_per_step)
+    ax.plot(xs1, ys1, '-', color='#e67e22', linewidth=2,
             label='Local Computation Delay')
-    ax.plot(steps, offload_delay_per_step, '-', color='#2980b9', linewidth=2,
+    ax.plot(xs2, ys2, '-', color='#2980b9', linewidth=2,
             label='Offload Computation Delay')
 
-    ax.fill_between(steps, local_delay_per_step, alpha=0.15, color='#e67e22')
-    ax.fill_between(steps, offload_delay_per_step, alpha=0.15, color='#2980b9')
+    ax.fill_between(xs1, ys1, alpha=0.15, color='#e67e22')
+    ax.fill_between(xs2, ys2, alpha=0.15, color='#2980b9')
 
     ax.set_xlabel('Step', fontsize=12)
     ax.set_ylabel('Total Delay (s)', fontsize=12)
