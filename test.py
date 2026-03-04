@@ -232,32 +232,37 @@ def plot_user_delays(data, save_path="./user_task_delays.png"):
     print(f"用户任务处理时延图已保存至: {save_path}")
 
 
-def plot_uav_load_balance(data, save_path="./uav_load_balance.png"):
-    """绘制每一步UAV的负载均衡图"""
+def plot_jain_fairness_index(data, save_path="./jain_fairness_index.png"):
+    """绘制每一步UAV负载的Jain公平指数"""
     uav_loads = data['uav_loads']
     test_steps = data['test_steps']
 
     steps = np.arange(1, test_steps + 1)
-    colors = ['#e74c3c', '#2ecc71', '#3498db']
+
+    # 计算每步的Jain公平指数: J = (Σxi)^2 / (n * Σxi^2)
+    sum_x = uav_loads.sum(axis=1)
+    sum_x2 = (uav_loads ** 2).sum(axis=1)
+    # 避免除以零
+    jain_index = np.where(sum_x2 > 0, sum_x ** 2 / (num_uavs * sum_x2), 1.0)
 
     fig, ax = plt.subplots(figsize=(14, 6), dpi=150)
 
-    for i in range(num_uavs):
-        ax.plot(steps, uav_loads[:, i], color=colors[i], linewidth=2,
-                alpha=0.85, label=f'UAV {i + 1}')
-        ax.fill_between(steps, uav_loads[:, i], alpha=0.15, color=colors[i])
+    ax.plot(steps, jain_index, color='#2980b9', linewidth=2, label="Jain's Fairness Index")
+    ax.fill_between(steps, jain_index, alpha=0.15, color='#2980b9')
+    ax.axhline(y=1.0, color='gray', linestyle='--', linewidth=1, alpha=0.7, label='Perfect Fairness (1.0)')
 
     ax.set_xlabel('Step', fontsize=12)
-    ax.set_ylabel('Load (Mbit)', fontsize=12)
-    ax.set_title(f'UAV Load Balance per Step ({test_steps} steps)', fontsize=14)
+    ax.set_ylabel("Jain's Fairness Index", fontsize=12)
+    ax.set_title(f"Jain's Fairness Index of UAV Load per Step ({test_steps} steps)", fontsize=14)
     ax.set_xticks(range(0, test_steps + 1, 10))
+    ax.set_ylim(0, 1.05)
     ax.legend(fontsize=10)
-    ax.grid(True, alpha=0.3, axis='y')
+    ax.grid(True, alpha=0.3)
 
     plt.tight_layout()
     plt.savefig(save_path, dpi=150, bbox_inches='tight')
     plt.close(fig)
-    print(f"UAV负载均衡图已保存至: {save_path}")
+    print(f"Jain公平指数图已保存至: {save_path}")
 
 
 def plot_offload_distribution(data, save_path="./offload_distribution.png"):
@@ -350,6 +355,6 @@ if __name__ == "__main__":
     data = run_test(model_path=MODEL_PATH, test_steps=TEST_STEPS)
     plot_uav_trajectories(data, save_path="./uav_trajectories.png")
     plot_user_delays(data, save_path="./user_task_delays.png")
-    plot_uav_load_balance(data, save_path="./uav_load_balance.png")
+    plot_jain_fairness_index(data, save_path="./jain_fairness_index.png")
     plot_offload_distribution(data, save_path="./offload_distribution.png")
     plot_local_vs_offload_delay(data, save_path="./local_vs_offload_delay.png")
