@@ -206,6 +206,7 @@ def plot_user_delays(data, save_path="./user_task_delays.png"):
     ax1.set_title('Communication Delay per User', fontsize=13)
     ax1.legend(fontsize=7, ncol=2, loc='upper right')
     ax1.set_xticks(range(0, test_steps + 1, 10))
+    ax1.set_xlim(0, test_steps + 1)
     ax1.set_ylim(bottom=0)
     ax1.grid(True, alpha=0.3)
 
@@ -220,6 +221,7 @@ def plot_user_delays(data, save_path="./user_task_delays.png"):
     ax2.set_title('Computation Delay per User', fontsize=13)
     ax2.legend(fontsize=7, ncol=2, loc='upper right')
     ax2.set_xticks(range(0, test_steps + 1, 10))
+    ax2.set_xlim(0, test_steps + 1)
     ax2.set_ylim(bottom=0)
     ax2.grid(True, alpha=0.3)
 
@@ -234,6 +236,7 @@ def plot_user_delays(data, save_path="./user_task_delays.png"):
     ax3.set_title('Return Delay per User', fontsize=13)
     ax3.legend(fontsize=7, ncol=2, loc='upper right')
     ax3.set_xticks(range(0, test_steps + 1, 10))
+    ax3.set_xlim(0, test_steps + 1)
     ax3.set_ylim(bottom=0)
     ax3.grid(True, alpha=0.3)
 
@@ -248,6 +251,7 @@ def plot_user_delays(data, save_path="./user_task_delays.png"):
     ax4.set_title('Total System Delay per Step', fontsize=13)
     ax4.legend(fontsize=10)
     ax4.set_xticks(range(0, test_steps + 1, 10))
+    ax4.set_xlim(0, test_steps + 1)
     ax4.set_ylim(bottom=0)
     ax4.grid(True, alpha=0.3)
 
@@ -282,6 +286,7 @@ def plot_jain_fairness_index(data, save_path="./jain_fairness_index.png"):
     ax.set_ylabel("Jain's Fairness Index", fontsize=12)
     ax.set_title(f"Jain's Fairness Index of UAV Load per Step ({test_steps} steps)", fontsize=14)
     ax.set_xticks(range(0, test_steps + 1, 10))
+    ax.set_xlim(0, test_steps + 1)
     ax.set_ylim(0, 1.05)
     ax.legend(fontsize=10)
     ax.grid(True, alpha=0.3)
@@ -323,6 +328,7 @@ def plot_offload_distribution(data, save_path="./offload_distribution.png"):
     ax.set_ylabel('Number of Users', fontsize=12)
     ax.set_title(f'User Computation Distribution per Step ({test_steps} steps)', fontsize=14)
     ax.set_xticks(range(0, test_steps + 1, 10))
+    ax.set_xlim(0, test_steps + 1)
     ax.set_yticks(range(0, num_users + 1))
     ax.legend(fontsize=10, loc='upper right')
     ax.grid(True, alpha=0.3, axis='y')
@@ -374,6 +380,7 @@ def plot_local_vs_offload_delay(data, save_path="./local_vs_offload_delay.png"):
     ax.set_title(f'Local vs Offload Delay per Step ({test_steps} steps)', fontsize=14)
     ax.legend(fontsize=11)
     ax.set_xticks(range(0, test_steps + 1, 10))
+    ax.set_xlim(0, test_steps + 1)
     ax.set_ylim(bottom=0)
     ax.grid(True, alpha=0.3)
 
