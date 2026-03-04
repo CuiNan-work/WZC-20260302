@@ -318,11 +318,19 @@ def plot_offload_distribution(data, save_path="./offload_distribution.png"):
 
     fig, ax = plt.subplots(figsize=(14, 6), dpi=150)
 
-    # 堆叠面积图
-    stack_data = np.vstack([local_counts] + [uav_counts[:, i] for i in range(num_uavs)])
-    stack_labels = ['Local'] + [f'Offload to UAV {i + 1}' for i in range(num_uavs)]
-    stack_colors = ['#95a5a6'] + ['#e74c3c', '#2ecc71', '#3498db'][:num_uavs]
-    ax.stackplot(steps, stack_data, labels=stack_labels, colors=stack_colors, alpha=0.85)
+    # 折线图：每类决策的用户数随步骤变化
+    line_data = [local_counts] + [uav_counts[:, i] for i in range(num_uavs)]
+    line_labels = ['Local'] + [f'Offload to UAV {i + 1}' for i in range(num_uavs)]
+    line_colors = ['#95a5a6'] + ['#e74c3c', '#2ecc71', '#3498db'][:num_uavs]
+    all_markers = ['o', 's', '^', 'D', 'v', 'P', 'X', 'h']
+    line_markers = all_markers[:1 + num_uavs]
+
+    for i, (yd, label, color, marker) in enumerate(zip(line_data, line_labels, line_colors, line_markers)):
+        xs, ys = smooth_line(steps, yd)
+        ys = np.maximum(ys, 0)
+        ax.plot(xs, ys, color=color, linewidth=2, label=label,
+                marker=marker, markevery=max(1, test_steps // 10),
+                markersize=6, alpha=0.9)
 
     ax.set_xlabel('Step', fontsize=12)
     ax.set_ylabel('Number of Users', fontsize=12)
@@ -331,7 +339,7 @@ def plot_offload_distribution(data, save_path="./offload_distribution.png"):
     ax.set_xlim(0, test_steps + 1)
     ax.set_yticks(range(0, num_users + 1))
     ax.legend(fontsize=10, loc='upper right')
-    ax.grid(True, alpha=0.3, axis='y')
+    ax.grid(True, alpha=0.3)
 
     plt.tight_layout()
     plt.savefig(save_path, dpi=150, bbox_inches='tight')
